@@ -6,4 +6,4 @@ In the Configuration.h you can choose to use a rotary enconder (recommended) or 
 
 Case is provided for 3D printout.
 
-![Kitchen_Timer_4](https://user-images.githubusercontent.com/76703830/110682868-b803a680-81db-11eb-8c7c-f29519be2385.JPG)
+![Kitchen_Timer_4_small](https://user-images.githubusercontent.com/76703830/111516757-8d25cf00-8754-11eb-9f6a-f4aeaa255936.JPG)
