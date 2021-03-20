@@ -63,12 +63,14 @@
 // Main Time
 #define TIME_POS_Y              47
 #define TIME_COL                TFT_GREEN
+#define TIME_COL_HM             TFT_CYAN
 #define TIME_COL_BACK           TFT_BLACK
 #define STARTTIME_COL           TFT_RED
 #define STARTTIME_COL_BACK      TFT_BLACK
 #define PAUSETIME_COL           TFT_DARKGREY
 #define PAUSETIME_COL_BACK      TFT_BLACK
 #define BLINKTIME_COL           TFT_DARKGREEN
+#define BLINKTIME_COL_HM        TFT_DARKCYAN
 
 // Clock Icon (Position = Center of the clock)
 #define CLOCK_POS_X             19
@@ -114,6 +116,7 @@
 #define BUTTON_BR               12 // Button bottom right
 #define BUTTON_MODE              0 // Button onboard GPIO35
 #define BUTTON_RUNSTOP          35 // Button onboard GPIO0
+#define HOLD                    27 // keep power on
 
 #else //ROTARY
 // rotary encoder
@@ -122,6 +125,7 @@
 #define BUTTON_RUNSTOP          17 // Button Rotary Encoder
 #define BUTTON_MODE              0 // Button onboard GPIO35
 #define BUTTON_CLEAR            35 // Button onboard GPIO0
+#define HOLD                    37 // keep power on
 #endif
 
 #define DEBOUNCETIME           200 // Milliseconds

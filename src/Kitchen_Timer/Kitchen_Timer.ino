@@ -18,12 +18,9 @@
 
 // ########################
 // ToDo:
-// - Power-Off Hardware (reduce deep standby current from 300uA to 0uA)
 // - long button press for power off
 // - Code optimization
-// - Info on Error
 // - check pixel set outside narrow string and refresh back if needed
-// - exchange button h/m <-> left/right
 // ########################
 
 #include "SPI.h"
@@ -241,14 +238,16 @@ void flash_main_time(uint8_t hm, uint8_t ms, uint32_t color_fl, uint32_t color_f
   }
 
   tft.setTextDatum(TC_DATUM);
-  if (color_fl == BLINKTIME_COL) {
+//  if (color_fl == BLINKTIME_COL) {
+  if ((color_fl == BLINKTIME_COL) || (color_fl == BLINKTIME_COL_HM)) {
     if (hm<10) {
       tft.fillRect(0, TIME_POS_Y, 40, 73, color_b);
     }
     tft.setTextColor(color_fl, color_b);
     tft.drawString(buff, pos_l, TIME_POS_Y, GFXFF);
   }
-  if (color_fr == BLINKTIME_COL) {
+//  if (color_fr == BLINKTIME_COL) {
+  if ((color_fr == BLINKTIME_COL) || (color_fr == BLINKTIME_COL_HM)) {
     if (hm<10) {
       tft.fillRect(200, TIME_POS_Y, 40, 73, color_b);
     }
@@ -365,7 +364,7 @@ uint8_t Stopped_Handler(void) {
           if (setcount %2) {
             // flash maintime normal #################################################
             if (mode_HM) {
-              print_main_time(eh, em, TIME_COL, TIME_COL_BACK);
+              print_main_time(eh, em, TIME_COL_HM, TIME_COL_BACK);
             }
             else {
               print_main_time(em, es, TIME_COL, TIME_COL_BACK);
@@ -375,7 +374,7 @@ uint8_t Stopped_Handler(void) {
             if (setleft) {
               // flash left part of maintime dimmed #################################################
               if (mode_HM) {
-                flash_main_time(eh, em, BLINKTIME_COL, TIME_COL, TIME_COL_BACK);
+                flash_main_time(eh, em, BLINKTIME_COL_HM, TIME_COL_HM, TIME_COL_BACK);
               }
               else {
                 flash_main_time(em, es, BLINKTIME_COL, TIME_COL, TIME_COL_BACK);
@@ -384,7 +383,7 @@ uint8_t Stopped_Handler(void) {
             else {
               // flash right part of maintime dimmed #################################################
               if (mode_HM) {
-                flash_main_time(eh, em, TIME_COL, BLINKTIME_COL, TIME_COL_BACK);
+                flash_main_time(eh, em, TIME_COL_HM, BLINKTIME_COL_HM, TIME_COL_BACK);
               }
               else {
                 flash_main_time(em, es, TIME_COL, BLINKTIME_COL, TIME_COL_BACK);
@@ -594,7 +593,7 @@ uint8_t Stopped_Handler(void) {
     
     // print main time
     if (mode_HM) {
-      print_main_time(eh, em, TIME_COL, TIME_COL_BACK);
+      print_main_time(eh, em, TIME_COL_HM, TIME_COL_BACK);
     }
     else {
       print_main_time(em, es, TIME_COL, TIME_COL_BACK);
@@ -631,7 +630,7 @@ uint8_t Running_Handler(void) {
   tft.drawString(buff, 120, 10, 4);
 
   if (mode_HM) {
-    print_main_time(eh, em, TIME_COL, TIME_COL_BACK);
+    print_main_time(eh, em, TIME_COL_HM, TIME_COL_BACK);
     update_progressbar((RUN|BACK|FRAME|FULL|PART), eh*60+em, esh*60+esm);
   }
   else {
@@ -668,7 +667,7 @@ uint8_t Running_Handler(void) {
       // print main time
       if (mode_HM) {
         if (em_last != em) {
-          print_main_time(eh, em, TIME_COL, TIME_COL_BACK);
+          print_main_time(eh, em, TIME_COL_HM, TIME_COL_BACK);
           update_progressbar((RUN|PART), eh*60+em, esh*60+esm);
         }
       }
@@ -691,7 +690,12 @@ uint8_t Running_Handler(void) {
           tft.setTextColor(PAUSETIME_COL, TIME_COL_BACK);
         }
         else {
-          tft.setTextColor(TIME_COL, TIME_COL_BACK);
+          if (mode_HM) {
+            tft.setTextColor(TIME_COL_HM, TIME_COL_BACK);
+          }
+          else {
+            tft.setTextColor(TIME_COL, TIME_COL_BACK);
+          }
         }
         colon = !colon;
 
@@ -777,7 +781,7 @@ uint8_t Paused_Handler(void) {
       }
       else {
         if (mode_HM) {
-          print_main_time(eh, em, TIME_COL, PAUSETIME_COL_BACK);
+          print_main_time(eh, em, TIME_COL_HM, PAUSETIME_COL_BACK);
           update_progressbar((RUN|PART), eh*60+em, esh*60+esm);
         }
         else {
@@ -946,6 +950,8 @@ uint8_t Poweroff_Handler(void) {
   esp_deep_sleep_start();
   delay(200);
   
+  digitalWrite(HOLD, LOW); // switch off by hardware
+  
   strcpy( errortext, "shutdown not possible" );
   return FSM_ERROR;
 }
@@ -1018,6 +1024,10 @@ uint8_t Error_Handler(const char* errstring) {
 // ###############################################################################################
 
 void setup(void) {
+
+  // hold power on
+  pinMode(HOLD, OUTPUT);
+  digitalWrite(HOLD, HIGH);
 
 //  Serial.begin(250000);
   Serial.begin(115200);
@@ -1100,24 +1110,24 @@ void setup(void) {
   pinMode(BUTTON_BL, INPUT_PULLUP);
   pinMode(BUTTON_BR, INPUT_PULLUP);
   pinMode(BUTTON_MODE, INPUT_PULLUP);
-  pinMode(BUTTON_RUNSTOP, INPUT_PULLUP);
+  pinMode(BUTTON_RUNSTOP, INPUT);
 
   attachInterrupt(digitalPinToInterrupt(BUTTON_TL),int_button_TL, FALLING);
   attachInterrupt(digitalPinToInterrupt(BUTTON_TR),int_button_TR, FALLING);
   attachInterrupt(digitalPinToInterrupt(BUTTON_BL),int_button_BL, FALLING);
   attachInterrupt(digitalPinToInterrupt(BUTTON_BR),int_button_BR, FALLING);
   attachInterrupt(digitalPinToInterrupt(BUTTON_MODE),int_button_MODE, FALLING);
-  attachInterrupt(digitalPinToInterrupt(BUTTON_RUNSTOP),int_button_RUNSTOP, FALLING);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_RUNSTOP),int_button_RUNSTOP, RISING);
 #else //ROTARY
   pinMode(ENCPIN1, INPUT_PULLUP);
   pinMode(ENCPIN2, INPUT_PULLUP);
   pinMode(BUTTON_CLEAR, INPUT_PULLUP);
   pinMode(BUTTON_MODE, INPUT_PULLUP);
-  pinMode(BUTTON_RUNSTOP, INPUT_PULLUP);
+  pinMode(BUTTON_RUNSTOP, INPUT);
 
   attachInterrupt(digitalPinToInterrupt(BUTTON_CLEAR),int_button_CLR, FALLING);
   attachInterrupt(digitalPinToInterrupt(BUTTON_MODE),int_button_MODE, FALLING);
-  attachInterrupt(digitalPinToInterrupt(BUTTON_RUNSTOP),int_button_RUNSTOP, FALLING);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_RUNSTOP),int_button_RUNSTOP, RISING);
   attachInterrupt(ENCPIN1, checkPosition, CHANGE);
   attachInterrupt(ENCPIN2, checkPosition, CHANGE);
 #endif

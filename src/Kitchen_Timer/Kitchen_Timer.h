@@ -5,7 +5,7 @@
 #ifndef KITCHEN_TIMER_H
 #define KITCHEN_TIMER_H
 
-#define STR_VERSION "(c) Frank Scholl 10.03.2021"
+#define STR_VERSION "(c) Frank Scholl 14.03.2021"
 
 #define DBGSW 0
 
