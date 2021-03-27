@@ -72,6 +72,11 @@
 #define BLINKTIME_COL           TFT_DARKGREEN
 #define BLINKTIME_COL_HM        TFT_DARKCYAN
 
+// Charge
+#define CHARGE_COL_BACK         TFT_BLACK
+#define CHARGE_COL_TEXT         TFT_RED
+
+
 // Clock Icon (Position = Center of the clock)
 #define CLOCK_POS_X             19
 #define CLOCK_POS_Y             21
@@ -88,6 +93,7 @@
 #define TIMEOUT_END             10*60*1000    // timeout for auto power off during END state (waiting for button) [ms]
 #define SOUND_TIMEOUT           60*1000       // timeout for repeating sound in end state [ms]
 #define MAX_H                   24            // max set hours
+#define MAX_M                   99            // max set minutes
 
 #define EE_MODE_HM              2             // 0=always start in Mode HH:MM, 1=always start in Mode MM:SS, 2=remember last mode from EEPROM
 
@@ -111,7 +117,7 @@
 // port pins for buttons
 #ifdef BUTTONS
 #define BUTTON_TL               33 // Button top left
-#define BUTTON_TR               32 //26 // Button top right
+#define BUTTON_TR               32 // Button top right
 #define BUTTON_BL               17 // Button bottom left
 #define BUTTON_BR               12 // Button bottom right
 #define BUTTON_MODE              0 // Button onboard GPIO35
@@ -125,7 +131,7 @@
 #define BUTTON_RUNSTOP          17 // Button Rotary Encoder
 #define BUTTON_MODE              0 // Button onboard GPIO35
 #define BUTTON_CLEAR            35 // Button onboard GPIO0
-#define HOLD                    37 // keep power on
+#define HOLD                    27 // keep power on
 #endif
 
 #define DEBOUNCETIME           200 // Milliseconds

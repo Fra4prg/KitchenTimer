@@ -21,6 +21,7 @@
 // - long button press for power off
 // - Code optimization
 // - check pixel set outside narrow string and refresh back if needed
+// - charging: keep power on
 // ########################
 
 #include "SPI.h"
@@ -121,10 +122,11 @@ void drawClockFace(void) {
 }
 
 void show_battery() {
-
+  // correction factor due to real measurement
+  #define CORR 0.29
 // read battery voltage
   uint16_t v = analogRead(ADC_PIN);
-  battery_voltage = ((float)v / 4095.0) * 2.0 * 3.3 * (VREF / 1000.0);
+  battery_voltage = ((float)v / 4095.0) * 2.0 * 3.3 * (VREF / 1000.0) + CORR;
   String voltage = " " + String(battery_voltage) + "V";
   tft.setTextDatum(TR_DATUM);
   tft.setTextColor(BATCOL_VAL);
@@ -191,18 +193,23 @@ void update_progressbar(uint8_t pmode, uint16_t pvalue,  uint16_t maxval) {
   }
 
   // select style
-  if (pmode & BACK) {
+  if (pmode & BACK) { // fill background
     tft.fillRect(0, PROGBAR_POS_Y-2, 240, PROGBAR_HEIGHT+4, TIME_COL_BACK); // background progress bar
   }
-  if (pmode & FRAME) {
+  if (pmode & FRAME) { // draw frame
     tft.drawRect(0, PROGBAR_POS_Y, 240, PROGBAR_HEIGHT, progbar_color_frame); // border progress bar
   }
-  if (pmode & FULL) {
+  if (pmode & FULL) { // fill full bar
     tft.fillRect(2, PROGBAR_POS_Y+2, 236, PROGBAR_HEIGHT-4, progbar_color_bar); // filled progress bar
   }
-  if (pmode & PART) {
+  if (pmode & PART) { // decrease progress bar
     progbar = 236 * ((float)pvalue / (float)maxval);
-    tft.fillRect((uint32_t)(progbar+2), PROGBAR_POS_Y+2, (uint32_t)(236-progbar), PROGBAR_HEIGHT-4, PROGBAR_COL_BACK);  // decrease progress bar
+    tft.fillRect((uint32_t)(progbar+2), PROGBAR_POS_Y+2, (uint32_t)(236-progbar), PROGBAR_HEIGHT-4, PROGBAR_COL_BACK);  
+  }
+  if (pmode & PARTP) { // increase progress bar
+    progbar = 236 * ((float)pvalue / (float)maxval);
+//    tft.fillRect((uint32_t)(progbar+2), PROGBAR_POS_Y+2, (uint32_t)(236-progbar), PROGBAR_HEIGHT-4, PROGBAR_COL_BACK);  
+    tft.fillRect((uint32_t)2, PROGBAR_POS_Y+2, (uint32_t)progbar, PROGBAR_HEIGHT-4, progbar_color_bar);  
   }
 }
 
@@ -492,44 +499,51 @@ uint8_t Stopped_Handler(void) {
     if (mode_HM) {
       if (((int)encoder.getDirection())>0) {
         if (setleft) {
-          set_time_hm += (newPos-pos) * 60*60000; // +hh
+          if (set_time_hm < ((MAX_H) * 60*60000)) {
+            set_time_hm += (newPos-pos) * 60*60000; // +hh
+          }
         }
         else {
-          set_time_hm += (newPos-pos) * 60000; // +mm
+          if (set_time_hm < ((MAX_H) * 60*60000)) {
+            set_time_hm += (newPos-pos) * 60000; // +mm
+          }
         }
       }
       else {  // minus
         if (setleft) {
           if (set_time_hm >= 60*60000) {
-            set_time_hm += (newPos-pos) * 60*60000; // +hh
+            set_time_hm += (newPos-pos) * 60*60000; // -hh
           }
         }
         else {
           if (set_time_hm >= 1000) {
-            set_time_hm += (newPos-pos) * 60000; // +mm
+            set_time_hm += (newPos-pos) * 60000; // -mm
           }
         }
       }
     }
     else {
-      Serial.printf("mode ms - ");
       if (((int)encoder.getDirection())>0) {  // plus
         if (setleft) {
-          set_time_ms += (newPos-pos) * 60*1000; // +mm
+          if (set_time_ms < ((MAX_M) * 60*1000)) {
+            set_time_ms += (newPos-pos) * 60*1000; // +mm
+          }
         }
         else {
-          set_time_ms += (newPos-pos) * 1000; // +ss
+          if (set_time_ms < ((MAX_M) * 60*1000)) {
+            set_time_ms += (newPos-pos) * 1000; // +ss
+          }
         }
       }
       else {  // minus
         if (setleft) {
           if (set_time_ms >= 60*1000) {
-            set_time_ms += (newPos-pos) * 60*1000; // +mm
+            set_time_ms += (newPos-pos) * 60*1000; // -mm
           }
         }
         else {
           if (set_time_ms >= 1000) {
-            set_time_ms += (newPos-pos) * 1000; // +ss
+            set_time_ms += (newPos-pos) * 1000; // -ss
           }
         }
       }
@@ -588,7 +602,12 @@ uint8_t Stopped_Handler(void) {
     }
 
     es = (et / 1000) % 60;
-    em = (et / 60000) % 60;
+    if (mode_HM) {
+      em = (et / 60000) % 60;
+    }
+    else {
+      em = (et / 60000) % 100; // display up to 99 minutes
+    }
     eh = (et / 3600000);
     
     // print main time
@@ -917,18 +936,64 @@ uint8_t End_Handler(void) {
 }
 
 uint8_t Poweroff_Handler(void) {
+  int p;
   // entry
 #if DBGSW
   Serial.printf("entered Poweroff_Handler\n");
 #endif
+
+  // main
+
+  // if Voltage > x then USB is charging...
+  show_battery();
+  if(battery_voltage >= 4.60){
+    tft.fillScreen(CHARGE_COL_BACK);      // Clear screen
+    tft.setTextColor(CHARGE_COL_TEXT);
+    tft.setTextDatum(CC_DATUM);
+    tft.drawString(STR_CHARGING, 120, 68, 4);
+    p=0;
+//    update_progressbar((RUN|BACK|FRAME), p,  100);
+    update_progressbar((RUN|BACK), p,  100);
+    while(battery_voltage >= 4.60){
+      delay(500);
+      show_battery();
+      p += 10;
+      if (p>100) {
+        p=0;
+//        update_progressbar((RUN|BACK|FRAME), p,  100);
+        update_progressbar((RUN|BACK), p,  100);
+      }
+      update_progressbar((RUN|PARTP), p,  100);
+      if(battery_voltage < 4.60){ // after unplugging charge connector show battery voltage
+        tft.fillScreen(CHARGE_COL_BACK);
+        tft.setTextColor(CHARGE_COL_TEXT, CHARGE_COL_BACK);
+        tft.setTextDatum(CC_DATUM);
+        tft.drawString(STR_BATSTATE, 120, 60, 4);
+        for(p=20;p>0;p--) {
+          show_battery();
+          tft.setTextColor(CHARGE_COL_TEXT, CHARGE_COL_BACK);
+          tft.setTextDatum(CC_DATUM);
+          sprintf(buff, "%1.2fV", battery_voltage);
+          tft.drawString(buff, 120, 90, 4);
+//          update_progressbar((RUN|BACK|FRAME|PARTP), (uint16_t)(battery_voltage*100/4.2),  100);
+          update_progressbar((RUN|BACK|FRAME|PARTP), (uint16_t)((battery_voltage-2.8)*100/1.4),  100);
+          delay(500);
+          // if charge connector is replugged then continue charging
+          if(battery_voltage >= 4.60){
+            tft.fillScreen(CHARGE_COL_BACK);      // Clear screen
+            tft.setTextColor(CHARGE_COL_TEXT);
+            tft.setTextDatum(CC_DATUM);
+            tft.drawString(STR_CHARGING, 120, 68, 4);
+            p=0;
+          }
+        }
+      }
+    }
+  }
+
   tft.fillScreen(TFT_BLUE);      // Clear screen
   tft.setTextColor(TFT_WHITE);
   tft.setTextDatum(CC_DATUM);
-#if DBGSW
-  Serial.printf("Poweroff_Handler filled screen\n");
-#endif
-
-  // main
   tft.drawString(STR_POWEROFF, 120, 68, 4);
 #if DBGSW
   Serial.printf("Poweroff_Handler drawn string\n");

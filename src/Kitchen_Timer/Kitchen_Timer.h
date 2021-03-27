@@ -5,7 +5,7 @@
 #ifndef KITCHEN_TIMER_H
 #define KITCHEN_TIMER_H
 
-#define STR_VERSION "(c) Frank Scholl 14.03.2021"
+#define STR_VERSION "(c) Frank Scholl 27.03.2021"
 
 #define DBGSW 0
 
@@ -35,9 +35,11 @@
 #define FRAME         2
 #define FULL          4
 #define PART          8
-#define RUN           16
-#define PAUSE         32
-#define END           64
+#define PARTP         16
+#define RUN           32
+#define PAUSE         64
+#define END           128
+
 
 // states of FSM
 #define FSM_STOPPED   1
@@ -57,6 +59,8 @@
 #define STR_Pause     "[Pause]"
 #define STR_TIMEOVER  "Time over!"
 #define STR_POWEROFF  "Power off..."
+#define STR_CHARGING  "Charging..."
+#define STR_BATSTATE  "Battery Voltage"
 #endif
 
 #ifdef LANG_DE
@@ -65,6 +69,8 @@
 #define STR_Pause     "[Pause]"
 #define STR_TIMEOVER  "Zeit abgelaufen!"
 #define STR_POWEROFF  "Ausschalten..."
+#define STR_CHARGING  "Laden..."
+#define STR_BATSTATE  "Batterie Spannung"
 #endif
 
 #ifdef LANG_HU
@@ -73,6 +79,8 @@
 #define STR_Pause     "[Szünet]"
 #define STR_TIMEOVER  "Lejárt Idő!"
 #define STR_POWEROFF  "Kikapcsolás..."
+#define STR_CHARGING  "tölt..."
+#define STR_BATSTATE  "Telep feszültség"
 #endif
 
 #ifdef LANG_IT
@@ -81,6 +89,8 @@
 #define STR_Pause     "[Pausa]"
 #define STR_TIMEOVER  "Tempo scaduto!"
 #define STR_POWEROFF  "Fuori..."
+#define STR_CHARGING  "Caricare..."
+#define STR_BATSTATE  "Batteria Tensione"
 #endif
 
 #ifdef LANG_ES
@@ -89,6 +99,8 @@
 #define STR_Pause     "[Pausa]"
 #define STR_TIMEOVER  "Tiempo expirado!"
 #define STR_POWEROFF  "Apagado..."
+#define STR_CHARGING  "Carga..."
+#define STR_BATSTATE  "Bateria Voltaje"
 #endif
 
 
