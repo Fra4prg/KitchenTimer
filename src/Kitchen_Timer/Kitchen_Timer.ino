@@ -1,14 +1,21 @@
 /*
-  Kitchen_Timer
+  Kitchen_Timer2
+
+  For this updated Version 
+     - the option to switch to hours/minutes can be disabled in Configuration.h disabled
+     - a warning sound appears before undervoltage shutdown
+     - in Configuration.h you ca select whether Seconds are always set to 00 at startup or set to last value
 
   Display
-  hh:mm for times >1h00
+  [disabled: hh:mm for times >1h00]
   mm:ss for times 1m00..59m59
 
   Configuration options see "Configuration.h"
 
   Make sure LOAD_GFXFF is defined in the used User_Setup file
   within the library folder.
+
+  select the development board  **ESP32 Dev Module**
 
   #########################################################################
   ###### DON'T FORGET TO UPDATE THE User_Setup.h FILE IN THE LIBRARY ######
@@ -18,6 +25,7 @@
 
 // ########################
 // ToDo:
+// - solve linker error: "dram0.data' will not fit in region `dram0_0_seg" so that warn sound can be used at LOW BATT shutdown
 // - long button press for power off
 // - Code optimization
 // - check pixel set outside narrow string and refresh back if needed
@@ -38,6 +46,9 @@
 #include "Alarm_Clock.h"
 #include "harp.h"
 #include "XT_DAC_Audio.h"
+
+// linker error: dram0.data' will not fit in region `dram0_0_seg
+//#include "warn.h"
 
 // The custom font file attached to this sketch must be included
 #include "DSEG7_Classic_Mini_Bold_72.h"
@@ -70,6 +81,10 @@ XT_Wav_Class Alarm(Alarm_Clock);      // create an object of type XT_Wav_Class t
                                       // the dac audio class (below), passing wav data as parameter.
 
 XT_Wav_Class harpsound(harp);         // create an object of type XT_Wav_Class that is used by 
+                                      // the dac audio class (below), passing wav data as parameter.
+
+// linker error: dram0.data' will not fit in region `dram0_0_seg
+//XT_Wav_Class warnsound(warn);         // create an object of type XT_Wav_Class that is used by 
                                       // the dac audio class (below), passing wav data as parameter.
                                       
 XT_DAC_Audio_Class DacAudio(25,0);    // Create the main player class object. 
@@ -435,11 +450,15 @@ uint8_t Stopped_Handler(void) {
       return FSM_RUNNUNG;
     }
 
+#if OPTION_HHMM
     // ***** Mode *****
     if (buttons & MD) { // change mode HH:MM <-> MM:SS
       //buttons=0;
       mode_HM = !mode_HM;
     }
+#else
+
+#endif
 
 #ifdef BUTTONS
     // ***** hh/mm ++ *****
@@ -1022,7 +1041,7 @@ uint8_t Poweroff_Handler(void) {
 }
 
 uint8_t Lowbatt_Handler(void) {
-  uint8_t i=10;
+  uint8_t i;
   uint16_t v;
   float battery_voltage;
   String voltage;
@@ -1037,6 +1056,22 @@ uint8_t Lowbatt_Handler(void) {
 
   // main
 
+  // play warning sound
+  // linker error using additional sound file warn.h: dram0.data' will not fit in region `dram0_0_seg
+  //i = 5;
+  //while (i>0) {
+  //  i--;
+  // workaround: use Alarm sound
+  //  DacAudio.Play(&warnsound);
+  //  while (warnsound.Playing==true) {
+    DacAudio.Play(&Alarm);
+    while (Alarm.Playing==true) {
+      DacAudio.FillBuffer(); 
+      delay (1);
+    }
+  //}
+
+  i = 10;
   while (i>0) {
     i--;
     if (showsybol) {
@@ -1121,9 +1156,17 @@ void setup(void) {
 #if DBGSW
     Serial.printf("EEPROM set correct - reading vaules...\n");
 #endif
-    set_time_hm = (EEPROM.read(EE_HM_H) * 60*60*1000) + (EEPROM.read(EE_HM_M) * 60*1000);
-    set_time_ms = (EEPROM.read(EE_MS_M) * 60*1000   ) + (EEPROM.read(EE_MS_S) *1000);
 
+// restore last time settings from EEPROM
+    set_time_hm = (EEPROM.read(EE_HM_H) * 60*60*1000) + (EEPROM.read(EE_HM_M) * 60*1000);
+
+#if MMSS_SEC_RESTORE
+    set_time_ms = (EEPROM.read(EE_MS_M) * 60*1000   ) + (EEPROM.read(EE_MS_S) *1000); // restore seconds also
+#else
+    set_time_ms = (EEPROM.read(EE_MS_M) * 60*1000   ); // seconds always 00
+#endif
+
+/*
 #if EE_MODE_HM == 2
     if (EEPROM.read(EE_MODE) == 0) {
       mode_HM = false;
@@ -1132,6 +1175,7 @@ void setup(void) {
       mode_HM = true;
     }
 #endif
+*/
 
 #if DBGSW
     Serial.printf("set_time_hm = %d, set_time_ms = %d, mode_HM = %b\n", set_time_hm, set_time_ms, mode_HM);

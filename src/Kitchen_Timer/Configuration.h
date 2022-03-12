@@ -95,7 +95,10 @@
 #define MAX_H                   24            // max set hours
 #define MAX_M                   99            // max set minutes
 
-#define EE_MODE_HM              2             // 0=always start in Mode HH:MM, 1=always start in Mode MM:SS, 2=remember last mode from EEPROM
+#define EE_MODE_HM              1             // 0=always start in Mode HH:MM, 1=always start in Mode MM:SS, 2=remember last mode from EEPROM
+#define OPTION_HHMM             FALSE         // TRUE: Button can switch between MM:SS and HH:MM, FALSE: only MM:SS available
+#define MMSS_SEC_RESTORE        FALSE         // TRUE: restor seconds from EEPROM at power on, FALSE: seconds always 00 at power on
+
 
 // ***** Language *****
 // select only one !
@@ -136,6 +139,5 @@
 
 #define DEBOUNCETIME           200 // Milliseconds
 #define LONGPRESS             1000 // time for detecting long pressed button
-
 
 #endif // KITCHENTIMER_CONFIGURATION_H
